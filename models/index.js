@@ -39,4 +39,17 @@ Object.keys(db).forEach(modelName => {
 db.sequelize = sequelize;
 db.Sequelize = Sequelize;
 
+// A Transcription can have only one Ai
+db.Transcription.hasOne(db.Ai, { foreignKey: 'transcriptionId', as: 'AiDetails' });
+
+// An Ai must belong to one Transcription
+db.Ai.belongsTo(db.Transcription, { foreignKey: 'transcriptionId', as: 'Transcription' });
+
+// An Ai can have only one Summary
+db.Ai.hasOne(db.Summary, { foreignKey: 'aiId', as: 'AiSummary' });
+
+// A Summary must belong to one Ai
+db.Summary.belongsTo(db.Ai, { foreignKey: 'aiId', as: 'Ai' });
+
+
 module.exports = db;
