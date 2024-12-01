@@ -15,7 +15,7 @@ let prepromptAskAI = `from this notes from a recording of a meeting `
 let afterpromptAskAI = `asware to this question in a sharp and clean answare as possibile`
 
 
-const openai = new OpenAI({ apiKey: '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'});
+const openai = new OpenAI({ apiKey: process.env.AI_GPT_KEY});
 
 async function getSummaryOPENAI(initialTranscription) {
     try {
