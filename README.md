@@ -113,7 +113,7 @@ Content-Type: application/json
 ## **Key Components**
 
 ### Middleware
-- **`authenticateToken`**: Ensure secure access to the endpoints (not detailed here but assumed to be implemented).
+- **`authenticateToken`**: Ensure secure access to the endpoints .
 
 ### Utilities
 - **`getSummaryOPENAI()`**: Calls an AI service to generate summaries.
@@ -173,5 +173,3 @@ Stores generated summaries.
 - Improve error messages and logging.
 
 ---
-
-With this documentation, you can now set up and interact with the transcription summary API effectively!
