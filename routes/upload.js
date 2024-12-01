@@ -91,10 +91,13 @@ router.get('/transcription/details/:id',authenticateToken, async (req, res) => {
         const aiDetails = transcription.AiDetails
             ? {
                 ...transcription.AiDetails.toJSON(),
-                AIresponse: JSON.parse(transcription.AiDetails.AIresponse),
-                AIsummary: JSON.parse(transcription.AiDetails.AiSummary.AIresponse)
+                AIresponse: JSON.parse(transcription.AiDetails.AIresponse)
             }
             : null;
+
+        if(transcription.AiDetails.AiSummary?.AIresponse){
+            aiDetails.AIsummary = JSON.parse(transcription.AiDetails.AiSummary.AIresponse)
+        }
 
         //pulisco
         delete aiDetails.AiSummary

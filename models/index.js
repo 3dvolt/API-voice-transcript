@@ -5,7 +5,7 @@ require('dotenv').config();
 
 const sequelize = new Sequelize(
     process.env.RDS_DB_NAME || 'database_name_2',
-    process.env.RDS_USERNAME || 'auth_user',
+    process.env.RDS_USERNAME || 'postgres',
     process.env.RDS_PASSWORD || 'mysecretpassword',
     {
             host: process.env.RDS_HOSTNAME || 'localhost',
