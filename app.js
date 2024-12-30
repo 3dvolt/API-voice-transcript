@@ -16,16 +16,18 @@ const uploadRoute = require('./routes/upload');
 const authRoute = require('./routes/auth');
 const summaryRoute = require('./routes/summary');
 const timerRoute = require('./routes/timer');
+const statsRoute = require('./routes/stats');
 
 app.use('/v1/api', uploadRoute);
 app.use('/api/auth', authRoute);
 app.use('/v1/api', timerRoute);
 app.use('/v1/api', summaryRoute);
+app.use('/v1/api', statsRoute );
 
 // Sync database models and start server
 const PORT = process.env.PORT || 3000;
 
-sequelize.sync({ alter: true }).then(() => {
+sequelize.sync({ alter: false }).then(() => {
     console.log('Database synchronized');
     app.listen(PORT, () => {
         console.log(`Server running on port ${PORT}`);

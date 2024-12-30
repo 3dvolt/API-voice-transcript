@@ -14,9 +14,10 @@ async function getTranscription(audioFile) {
         }
 
         const transcript = await client.transcripts.transcribe(params)
-
+        if(transcript.utterances){
         for (const utterance of transcript.utterances) {
             console.log(`Speaker ${utterance.speaker}: ${utterance.text}`)
+        }
         }
 
         return transcript; // Return the parsed data

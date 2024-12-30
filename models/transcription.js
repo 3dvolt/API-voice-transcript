@@ -1,16 +1,21 @@
 module.exports = (sequelize, DataTypes) => {
     const Transcription = sequelize.define('Transcription', {
         userId: {
-            type: DataTypes.INTEGER,
+            type: DataTypes.STRING,
             allowNull: false,
-            references: {
-                model: 'Users',
-                key: 'id',
-            },
         },
         name: {
             type: DataTypes.STRING,
             allowNull: true,
+        },
+        nota: {
+            type: DataTypes.STRING,
+            allowNull: true,
+        },
+        tag: {
+            type: DataTypes.JSON,
+            allowNull: true,
+            defaultValue: [],
         },
         duration: {
             type: DataTypes.INTEGER,

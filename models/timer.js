@@ -1,12 +1,8 @@
 module.exports = (sequelize, DataTypes) => {
     const Timer = sequelize.define('Timer', {
         userId: {
-            type: DataTypes.INTEGER,
+            type: DataTypes.STRING,
             allowNull: false,
-            references: {
-                model: 'Users',
-                key: 'id',
-            },
         },
         seconds: {
             type: DataTypes.INTEGER,

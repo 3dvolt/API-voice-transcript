@@ -7,9 +7,10 @@ const calculateDuration = require('../utils/audio');
 const {getSummary,getSummaryOPENAI,asktoAIOPENAI} = require("../ai/promptBuilder");
 
 
-router.post('/summary/:id', async (req, res) => {
+    router.post('/summary/:id', authenticateToken, async (req, res) => {
     try {
         const { id } = req.params;
+        const userId = req.user.id;
 
         // Find transcription details with AI response joined
         const transcription = await db.Transcription.findOne({
@@ -37,9 +38,15 @@ router.post('/summary/:id', async (req, res) => {
         let response = await getSummaryOPENAI(aiDetails.AIresponse.text)
 
         let newSummary = await db.Summary.create({
-            aiId:id,
+            aiId:aiDetails.id,
             AIresponse: JSON.stringify(response)
         })
+
+        await db.APILog.create({
+            userId,
+            endpoint: req.originalUrl,
+            timestamp: new Date()
+        });
 
         res.json(response);
     } catch (error) {
@@ -48,7 +55,7 @@ router.post('/summary/:id', async (req, res) => {
     }
 });
 
-router.post('/ask/summary/:id', async (req, res) => {
+router.post('/ask/summary/:id',authenticateToken, async (req, res) => {
     try {
         const { id } = req.params;
 
@@ -85,6 +92,8 @@ router.post('/ask/summary/:id', async (req, res) => {
         res.status(500).json({ message: 'Internal server error' });
     }
 });
+
+
 
 
 module.exports = router;
