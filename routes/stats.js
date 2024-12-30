@@ -14,26 +14,29 @@ router.get('/user-stats',authenticateToken, async (req, res) => {
             return res.status(400).json({ error: 'UserId is required.' });
         }
 
-// Parse and validate date range
         const start = startDate ? new Date(startDate) : new Date();
         start.setHours(0, 0, 0, 0); // Set start to the beginning of the day
 
         const end = endDate ? new Date(endDate) : new Date();
         end.setHours(23, 59, 59, 999); // Set end to the end of the day
 
+        const timezoneOffset = start.getTimezoneOffset() * 60000; // Offset in milliseconds
+        const startUTC = new Date(start.getTime() - timezoneOffset);
+        const endUTC = new Date(end.getTime() - timezoneOffset);
+
         // Fetch timers grouped by day
         const timerData = await Timer.findAll({
             where: {
                 userId: userId,
                 createdAt: {
-                    [Op.between]: [start, end],
+                    [Op.between]: [startUTC, endUTC],
                 },
             },
             attributes: [
                 [sequelize.fn('DATE', sequelize.col('createdAt')), 'date'],
                 [sequelize.fn('SUM', sequelize.col('seconds')), 'totalSeconds'],
             ],
-            group: [sequelize.fn('DATE', sequelize.col('createdAt'))],
+            group: [sequelize.fn('DATE', sequelize.col('createdAt'))]
         });
 
         // Fetch transcriptions grouped by day
@@ -41,14 +44,14 @@ router.get('/user-stats',authenticateToken, async (req, res) => {
             where: {
                 userId: userId,
                 createdAt: {
-                    [Op.between]: [start, end],
+                    [Op.between]: [startUTC, endUTC],
                 },
             },
             attributes: [
                 [sequelize.fn('DATE', sequelize.col('createdAt')), 'date'],
                 [sequelize.fn('SUM', sequelize.col('duration')), 'transcriptionCount'],
             ],
-            group: [sequelize.fn('DATE', sequelize.col('createdAt'))],
+            group: [sequelize.fn('DATE', sequelize.col('createdAt'))]
         });
 
         // Combine results by date

@@ -5,11 +5,13 @@ const router = express.Router();
 const db = require('../models');
 const { calculateDuration } = require('../utils/audio');
 const {getTranscription} = require("../ai/assemblySpeechModel");
+const {Readable} = require("node:stream");
 
+const apiUrl = process.env.API_BASE_URL || 'http://192.168.2.194:3001/v1/api';
 
 const storage = multer.memoryStorage();
 const fileFilter = (req, file, cb) => {
-    if (file.mimetype === 'audio/mpeg' || file.mimetype === 'audio/wav' || file.mimetype === 'audio/webm' || file.mimetype === 'audio/m4a' || file.mimetype === 'audio/mpeg' || file.mimetype === 'audio/x-m4a') {
+    if (file.mimetype === 'audio/mp4' || file.mimetype === 'audio/mpeg' || file.mimetype === 'audio/wav' || file.mimetype === 'audio/webm' || file.mimetype === 'audio/m4a' || file.mimetype === 'audio/mpeg' || file.mimetype === 'audio/x-m4a') {
         cb(null, true);
     } else {
         cb(new Error('Invalid file type. Only MP3 and WAV are allowed!'), false);
@@ -117,7 +119,7 @@ router.get('/transcription/details/:id',authenticateToken, async (req, res) => {
             status: transcription.status,
             loadtype: transcription.loadtype,
             timestamp: transcription.timestamp,
-            file: transcription.wav,
+            file: `${apiUrl}/transcription/stream/${transcription.id}`,
             aiDetails
         });
     } catch (error) {
@@ -200,5 +202,38 @@ router.get('/transcription/list',authenticateToken, async (req, res) => {
     }
 });
 
+router.get('/transcription/stream/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        // Find transcription to get the file path
+        const transcription = await db.Transcription.findOne({ where: { id } });
+
+        if (!transcription) {
+            return res.status(404).json({ message: 'Transcription not found' });
+        }
+
+        const audioBuffer = transcription.wav; // Assuming this is the audio buffer
+
+        if (!audioBuffer) {
+            return res.status(404).json({ message: 'Audio file not found' });
+        }
+
+        // Set the appropriate headers
+        res.setHeader('Content-Type', 'audio/wav');
+        res.setHeader('Content-Length', audioBuffer.length);
+
+        // Stream the buffer
+        const readable = new Readable();
+        readable._read = () => {}; // No-op _read
+        readable.push(audioBuffer);
+        readable.push(null); // Signal EOF
+
+        readable.pipe(res);
+    } catch (error) {
+        console.error('Error fetching transcription audio file:', error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+});
 
 module.exports = router;

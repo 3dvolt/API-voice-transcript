@@ -10,7 +10,8 @@ async function getTranscription(audioFile) {
 
         const params = {
             audio: audioFile,
-            speaker_labels: true
+            speech_model: 'nano',
+            language_detection: true
         }
 
         const transcript = await client.transcripts.transcribe(params)
