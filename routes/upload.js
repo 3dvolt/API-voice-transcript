@@ -220,7 +220,7 @@ router.get('/transcription/stream/:id', async (req, res) => {
         }
 
         // Set the appropriate headers
-        res.setHeader('Content-Type', 'audio/wav');
+        res.setHeader('Content-Type', 'audio/mp3');
         res.setHeader('Content-Length', audioBuffer.length);
 
         // Stream the buffer
