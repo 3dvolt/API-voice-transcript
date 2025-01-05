@@ -19,12 +19,14 @@ const authRoute = require('./routes/auth');
 const summaryRoute = require('./routes/summary');
 const timerRoute = require('./routes/timer');
 const statsRoute = require('./routes/stats');
+const goalRoute = require('./routes/goal');
 
 app.use('/v1/api', uploadRoute);
 app.use('/api/auth', authRoute);
 app.use('/v1/api', timerRoute);
 app.use('/v1/api', summaryRoute);
 app.use('/v1/api', statsRoute );
+app.use('/v1/api', goalRoute );
 
 // Sync database models and start server
 const PORT = process.env.PORT || 3000;
