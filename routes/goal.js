@@ -3,7 +3,6 @@ const { Goal } = require('../models'); // Adjust path as needed
 const router = express.Router();
 const authenticateToken = require("../middleware/auth");
 
-// Endpoint to create or update goal
 router.post('/goals', authenticateToken, async (req, res) => {
     try {
         const userId = req.user.id;
@@ -13,22 +12,28 @@ router.post('/goals', authenticateToken, async (req, res) => {
             return res.status(400).json({ error: 'userId, FocusGoals, and RememberGoals are required.' });
         }
 
-        // Upsert logic: Create or update based on userId
-        const [goal, created] = await Goal.upsert({
-            userId,
-            FocusGoals,
-            RememberGoals
-        }, { returning: true });
+        // Upsert logic
+        const goal = await Goal.upsert(
+            {
+                userId,
+                FocusGoals,
+                RememberGoals
+            },
+            { returning: true } // Ensures the returned data is consistent
+        );
+
+        const isCreated = goal[1]; // Sequelize returns [instance, created], where created is a boolean
 
         return res.status(200).json({
-            message: created ? 'Goal created successfully.' : 'Goal updated successfully.',
-            goal
+            message: isCreated ? 'Goal created successfully.' : 'Goal updated successfully.',
+            goal: goal[0], // The actual goal instance
         });
     } catch (error) {
         console.error(error);
         return res.status(500).json({ error: 'An error occurred while creating or updating the goal.' });
     }
 });
+
 
 // Endpoint to get goal values for a user
 router.get('/goals', authenticateToken, async (req, res) => {
