@@ -3,6 +3,7 @@ module.exports = (sequelize, DataTypes) => {
         userId: {
             type: DataTypes.STRING,
             allowNull: false,
+            unique: true
         },
         FocusGoals: {
             type: DataTypes.INTEGER,
