@@ -31,7 +31,7 @@ router.post('/goals', authenticateToken, async (req, res) => {
 });
 
 // Endpoint to get goal values for a user
-router.get('/goals/:userId', authenticateToken, async (req, res) => {
+router.get('/goals', authenticateToken, async (req, res) => {
     try {
         const userId = req.user.id;
 
