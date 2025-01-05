@@ -11,10 +11,6 @@ module.exports = (sequelize, DataTypes) => {
         AIresponse: {
             type: DataTypes.BLOB('long'),
             allowNull: false,
-        },
-        timestamp: {
-            type: DataTypes.DATE,
-            defaultValue: DataTypes.NOW,
         }
     });
 
