@@ -42,8 +42,7 @@ router.post('/upload', authenticateToken, upload.single('audio'), async (req, re
         duration,
         status: 'uploaded',
         loadtype: mimetype,
-        wav: buffer,  // Save the audio buffer data as BLOB
-        timestamp: new Date()
+        wav: buffer
     });
 
     let audioTranscription = await getTranscription(buffer)
