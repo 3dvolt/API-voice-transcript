@@ -39,6 +39,7 @@ router.post('/upload', authenticateToken, upload.single('audio'), async (req, re
     const transcription = await db.Transcription.create({
         userId,
         name: originalname,
+        nota:req.body.title,
         duration,
         status: 'uploaded',
         loadtype: mimetype,
