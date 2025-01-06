@@ -35,7 +35,7 @@ const {getSummary,getSummaryOPENAI,asktoAIOPENAI} = require("../ai/promptBuilder
             }
             : null;
 
-        let response = await getSummaryOPENAI(aiDetails.AIresponse.text)
+        let response = await getSummaryOPENAI(aiDetails.AIresponse.text,(transcription.AiDetails.createdAt).toString())
 
         let newSummary = await db.Summary.create({
             aiId:aiDetails.id,

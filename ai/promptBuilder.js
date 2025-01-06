@@ -2,24 +2,25 @@ const axios = require('axios');
 const OpenAI = require('openai');
 const template = require("./example");
 
-let preprompt = `make a summary of this voice transcription. make a deep focus also in extrapolate phone numbers and relative name of contact and email. focus also in event scheduled and reurn it in a list. if the hour is not explicitly sayed make it all the day event.
-    if the year is not explicitily sayed take in consideration the current year 2024
+let preprompt = `make a summary of this voice transcription. make a deep focus also in extrapolate phone numbers and relative name of contact and email. focus also in event scheduled and merge it in a list. if the hour is not explicitly sayed make it all the day event.
+    if the year is not explicitily sayed take in consideration the current year
     the output should be structured like this example:
     ${JSON.stringify(template)}
+    the notes filed should contain the summary of the voice transcription in a ordanized and well formatted way
     `
 
 let afterprompt = `structure the output in a JSON structure. output only JSON, no other text, the text in notes should be in HTML`
 
 let prepromptAskAI = `from this notes from a recording of a meeting `
 
-let afterpromptAskAI = `asware to this question in a sharp and clean answare as possibile`
+let afterpromptAskAI = `answar to this question in a sharp and clean answare as possibile`
 
 
 const openai = new OpenAI({ apiKey: process.env.AI_GPT_KEY});
 
-async function getSummaryOPENAI(initialTranscription) {
+async function getSummaryOPENAI(initialTranscription,timestamp) {
     try {
-        let finalPrompt = preprompt + initialTranscription + afterprompt
+        let finalPrompt = preprompt + 'the current time and date where the recording was taken is '+timestamp +`\\n`+ initialTranscription + afterprompt
 
         const response = await openai.chat.completions.create({
     model: "gpt-3.5-turbo",
