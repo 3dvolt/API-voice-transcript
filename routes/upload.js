@@ -28,8 +28,7 @@ router.post('/upload', authenticateToken, upload.single('audio'), async (req, re
 
     await db.APILog.create({
         userId,
-        endpoint: req.originalUrl,
-        timestamp: new Date()
+        endpoint: req.originalUrl
     });
 
     // Calculate duration (example only - you might use an audio processing library for accurate duration)
