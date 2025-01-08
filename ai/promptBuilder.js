@@ -6,7 +6,7 @@ let preprompt = `make a summary of this voice transcription. make a deep focus a
     if the year is not explicitily sayed take in consideration the current year
     the output should be structured like this example:
     ${JSON.stringify(template)}
-    the notes filed should contain the summary of the voice transcription in a ordanized and well formatted way
+    the notes filed should contain the summary of the voice transcription in a ordanized and well formatted way, the output should be in the same language as the transcription text
     `
 
 let afterprompt = `structure the output in a JSON structure. output only JSON, no other text, the text in notes should be in HTML`
