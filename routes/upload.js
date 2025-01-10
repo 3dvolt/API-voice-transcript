@@ -85,6 +85,9 @@ router.get('/transcription/details/:id',authenticateToken, async (req, res) => {
                             model: db.Summary,
                             as: 'AiSummary', // Ensure this matches the association
                             required: false, // Include even if no Summary exists
+                            separate: true, // Fetch summaries in a separate query
+                            order: [['createdAt', 'DESC']], // Order by most recent
+                            limit: 1,
                         },
                     ],
                 }
