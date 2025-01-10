@@ -35,9 +35,8 @@ const openai = new OpenAI({ apiKey: process.env.AI_GPT_KEY});
 async function getSummaryOPENAI(initialTranscription,timestamp) {
     try {
         let finalPrompt = preprompt + `The current time and date of the recording is ${timestamp}. Below is the transcription:
-${initialTranscription}, Provide the output as a JSON object with no extra text. The "notes" field must contain the HTML-formatted summary.
+${initialTranscription}, Provide the output as a JSON object with no extra text. The "notes" field must contain the HTML-formatted summary. the output should be in the same language of the transcription
 `
-
         const response = await openai.chat.completions.create({
     model: "gpt-3.5-turbo",
     messages: [{"role": "user", "content": `${finalPrompt}`}],
@@ -47,6 +46,7 @@ ${initialTranscription}, Provide the output as a JSON object with no extra text.
     frequency_penalty: 0,
     presence_penalty: 0
 });
+        response.choices[0].message.content = response.choices[0].message.content.replace('json','')
 
 
         return JSON.parse(response.choices[0].message.content)
