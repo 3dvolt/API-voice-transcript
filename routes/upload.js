@@ -6,6 +6,7 @@ const db = require('../models');
 const { calculateDuration } = require('../utils/audio');
 const {getTranscription} = require("../ai/assemblySpeechModel");
 const {Readable} = require("node:stream");
+const {Op} = require("sequelize");
 
 const apiUrl = process.env.API_BASE_URL || 'http://192.168.2.194:3001/v1/api';
 
@@ -85,9 +86,15 @@ router.get('/transcription/details/:id',authenticateToken, async (req, res) => {
                             model: db.Summary,
                             as: 'AiSummary', // Ensure this matches the association
                             required: false, // Include even if no Summary exists
-                            separate: true, // Fetch summaries in a separate query
-                            order: [['createdAt', 'DESC']], // Order by most recent
-                            limit: 1,
+                            where: {
+                                createdAt: {
+                                    [Op.eq]: db.Sequelize.literal(`(
+                                SELECT MAX("createdAt") 
+                                FROM "Summaries" 
+                                WHERE "Summaries"."aiId" = "AiDetails"."id"
+                            )`),
+                                },
+                            },
                         },
                     ],
                 }
