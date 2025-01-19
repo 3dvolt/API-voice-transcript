@@ -1,5 +1,5 @@
 const express = require('express');
-const { sequelize,Timer, Transcription, User } = require('../models'); // Adjust path as needed
+const { sequelize,Timer, Transcription, License } = require('../models'); // Adjust path as needed
 const router = express.Router();
 const { Op } = require('sequelize');
 const authenticateToken = require("../middleware/auth");
@@ -8,7 +8,7 @@ const authenticateToken = require("../middleware/auth");
 router.get('/user-stats',authenticateToken, async (req, res) => {
     try {
         const userId = req.user.id;
-        const { startDate, endDate } = req.query;
+        const {startDate, endDate} = req.query;
 
         if (!userId) {
             return res.status(400).json({ error: 'UserId is required.' });
@@ -87,6 +87,14 @@ router.get('/user-transcription-usage', authenticateToken, async (req, res) => {
             return res.status(400).json({ error: 'UserId is required.' });
         }
 
+        // Check if the user exists in the License table
+        let license = await License.findOne({ where: { userId: userId } });
+
+        if (!license) {
+            // Create a new row if the user does not exist in the License table
+            license = await License.create({ userId: userId});
+        }
+
         // Get the current date and calculate the start and end of the month
         const now = new Date();
         const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -114,10 +122,14 @@ router.get('/user-transcription-usage', authenticateToken, async (req, res) => {
         // Extract the results
         const result = transcriptionUsage[0].dataValues;
 
+        // Fetch the License table data for the user
+        const userLicense = await License.findAll({ where: { userId: userId } });
+
         return res.status(200).json({
             userId: userId,
             totalDuration: result.totalDuration || 0,
             transcriptionCount: result.transcriptionCount || 0,
+            license: userLicense[0],
         });
     } catch (error) {
         console.error(error);
