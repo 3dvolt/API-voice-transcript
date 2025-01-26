@@ -149,7 +149,7 @@ const paginationMiddleware = (req, res, next) => {
     next();
 };
 
-// Endpoint to get daily usage stats
+// Endpoint to get daily usage stats with all days included
 router.get('/daily-usage', authenticateToken, paginationMiddleware, async (req, res) => {
     try {
         const userId = req.user.id;
@@ -158,29 +158,24 @@ router.get('/daily-usage', authenticateToken, paginationMiddleware, async (req, 
             return res.status(400).json({ error: 'UserId is required.' });
         }
 
-        // Get the latest date
-        const latestTimer = await Timer.findOne({
+        // Get the earliest and latest dates from both tables
+        const timerMinMax = await Timer.findOne({
             where: { userId },
-            attributes: [[sequelize.fn('MAX', sequelize.col('createdAt')), 'maxDate']],
-        });
-        const latestTranscription = await Transcription.findOne({
-            where: { userId },
-            attributes: [[sequelize.fn('MAX', sequelize.col('createdAt')), 'maxDate']],
+            attributes: [[sequelize.fn('MIN', sequelize.col('createdAt')), 'minDate'], [sequelize.fn('MAX', sequelize.col('createdAt')), 'maxDate']]
         });
 
-        // Determine the latest date
-        const maxDate = new Date(Math.max(
-            new Date(latestTimer?.dataValues.maxDate || Date.now()).getTime(),
-            new Date(latestTranscription?.dataValues.maxDate || Date.now()).getTime()
-        ));
+        const transcriptionMinMax = await Transcription.findOne({
+            where: { userId },
+            attributes: [[sequelize.fn('MIN', sequelize.col('createdAt')), 'minDate'], [sequelize.fn('MAX', sequelize.col('createdAt')), 'maxDate']]
+        });
 
-        // Get today's date
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
+        // Determine the overall date range
+        const minDate = new Date(Math.min(new Date(timerMinMax.dataValues.minDate), new Date(transcriptionMinMax.dataValues.minDate)));
+        const maxDate = new Date(Math.max(new Date(timerMinMax.dataValues.maxDate), new Date(transcriptionMinMax.dataValues.maxDate)));
 
-        // Generate all date entries within the range
+        // Generate all dates within the range
         const allDates = new Set();
-        for (let d = new Date(today); d <= maxDate; d.setDate(d.getDate() + 1)) {
+        for (let d = new Date(minDate); d <= maxDate; d.setDate(d.getDate() + 1)) {
             allDates.add(d.toISOString().split('T')[0]);
         }
 
@@ -206,6 +201,7 @@ router.get('/daily-usage', authenticateToken, paginationMiddleware, async (req, 
 
         // Prepare daily stats
         const stats = {};
+
         allDates.forEach(date => {
             stats[date] = { date, totalSeconds: 0, transcriptionCount: 0 };
         });
@@ -236,6 +232,7 @@ router.get('/daily-usage', authenticateToken, paginationMiddleware, async (req, 
         return res.status(500).json({ error: 'An error occurred while generating daily usage stats.' });
     }
 });
+
 
 
 
