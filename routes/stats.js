@@ -25,7 +25,7 @@ router.get('/user-stats',authenticateToken, async (req, res) => {
         const endUTC = new Date(end.getTime() - timezoneOffset);
 
         // Fetch timers grouped by day
-        const timerData = await Timer.findAll({
+            const timerData = await Timer.findAll({
             where: {
                 userId: userId,
                 createdAt: {
@@ -134,6 +134,114 @@ router.get('/user-transcription-usage', authenticateToken, async (req, res) => {
     } catch (error) {
         console.error(error);
         return res.status(500).json({ error: 'An error occurred while fetching transcription usage.' });
+    }
+});
+
+const paginationMiddleware = (req, res, next) => {
+    let { page, limit } = req.query;
+    page = page && parseInt(page) > 0 ? parseInt(page) : 1;
+    limit = limit && parseInt(limit) > 0 ? parseInt(limit) : 10;
+
+    req.pagination = {
+        offset: (page - 1) * limit,
+        limit: limit,
+    };
+    next();
+};
+
+// Endpoint to get daily usage stats
+router.get('/daily-usage', authenticateToken, paginationMiddleware, async (req, res) => {
+    try {
+        const userId = req.user.id;
+
+        if (!userId) {
+            return res.status(400).json({ error: 'UserId is required.' });
+        }
+
+        // Get the earliest and latest date
+        const earliestTimer = await Timer.findOne({
+            where: { userId },
+            attributes: [[sequelize.fn('MIN', sequelize.col('createdAt')), 'minDate']],
+        });
+        const earliestTranscription = await Transcription.findOne({
+            where: { userId },
+            attributes: [[sequelize.fn('MIN', sequelize.col('createdAt')), 'minDate']],
+        });
+        const latestTimer = await Timer.findOne({
+            where: { userId },
+            attributes: [[sequelize.fn('MAX', sequelize.col('createdAt')), 'maxDate']],
+        });
+        const latestTranscription = await Transcription.findOne({
+            where: { userId },
+            attributes: [[sequelize.fn('MAX', sequelize.col('createdAt')), 'maxDate']],
+        });
+
+        // Determine overall min and max dates
+        const minDate = new Date(Math.min(
+            new Date(earliestTimer?.dataValues.minDate || Date.now()).getTime(),
+            new Date(earliestTranscription?.dataValues.minDate || Date.now()).getTime()
+        ));
+        const maxDate = new Date(Math.max(
+            new Date(latestTimer?.dataValues.maxDate || Date.now()).getTime(),
+            new Date(latestTranscription?.dataValues.maxDate || Date.now()).getTime()
+        ));
+
+        // Generate all date entries within the range
+        const allDates = new Set();
+        for (let d = new Date(minDate); d <= maxDate; d.setDate(d.getDate() + 1)) {
+            allDates.add(d.toISOString().split('T')[0]);
+        }
+
+        // Fetch timers grouped by day
+        const timerData = await Timer.findAll({
+            where: { userId },
+            attributes: [
+                [sequelize.fn('DATE', sequelize.col('createdAt')), 'date'],
+                [sequelize.fn('SUM', sequelize.col('seconds')), 'totalSeconds'],
+            ],
+            group: [sequelize.fn('DATE', sequelize.col('createdAt'))],
+        });
+
+        // Fetch transcriptions grouped by day
+        const transcriptionData = await Transcription.findAll({
+            where: { userId },
+            attributes: [
+                [sequelize.fn('DATE', sequelize.col('createdAt')), 'date'],
+                [sequelize.fn('SUM', sequelize.col('duration')), 'transcriptionCount'],
+            ],
+            group: [sequelize.fn('DATE', sequelize.col('createdAt'))],
+        });
+
+        // Prepare daily stats
+        const stats = {};
+        allDates.forEach(date => {
+            stats[date] = { date, totalSeconds: 0, transcriptionCount: 0 };
+        });
+
+        timerData.forEach(timer => {
+            const date = timer.dataValues.date;
+            stats[date].totalSeconds = timer.dataValues.totalSeconds;
+        });
+
+        transcriptionData.forEach(transcription => {
+            const date = transcription.dataValues.date;
+            stats[date].transcriptionCount = transcription.dataValues.transcriptionCount;
+        });
+
+        // Convert stats to array and apply pagination
+        const statsArray = Object.values(stats)
+            .sort((a, b) => new Date(b.date) - new Date(a.date))
+            .slice(req.pagination.offset, req.pagination.offset + req.pagination.limit);
+
+        return res.status(200).json({
+            page: req.query.page || 1,
+            limit: req.query.limit || 10,
+            totalDays: allDates.size,
+            data: statsArray,
+        });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ error: 'An error occurred while generating daily usage stats.' });
     }
 });
 
