@@ -158,15 +158,7 @@ router.get('/daily-usage', authenticateToken, paginationMiddleware, async (req, 
             return res.status(400).json({ error: 'UserId is required.' });
         }
 
-        // Get the earliest and latest date
-        const earliestTimer = await Timer.findOne({
-            where: { userId },
-            attributes: [[sequelize.fn('MIN', sequelize.col('createdAt')), 'minDate']],
-        });
-        const earliestTranscription = await Transcription.findOne({
-            where: { userId },
-            attributes: [[sequelize.fn('MIN', sequelize.col('createdAt')), 'minDate']],
-        });
+        // Get the latest date
         const latestTimer = await Timer.findOne({
             where: { userId },
             attributes: [[sequelize.fn('MAX', sequelize.col('createdAt')), 'maxDate']],
@@ -176,19 +168,19 @@ router.get('/daily-usage', authenticateToken, paginationMiddleware, async (req, 
             attributes: [[sequelize.fn('MAX', sequelize.col('createdAt')), 'maxDate']],
         });
 
-        // Determine overall min and max dates
-        const minDate = new Date(Math.min(
-            new Date(earliestTimer?.dataValues.minDate || Date.now()).getTime(),
-            new Date(earliestTranscription?.dataValues.minDate || Date.now()).getTime()
-        ));
+        // Determine the latest date
         const maxDate = new Date(Math.max(
             new Date(latestTimer?.dataValues.maxDate || Date.now()).getTime(),
             new Date(latestTranscription?.dataValues.maxDate || Date.now()).getTime()
         ));
 
+        // Get today's date
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
         // Generate all date entries within the range
         const allDates = new Set();
-        for (let d = new Date(minDate); d <= maxDate; d.setDate(d.getDate() + 1)) {
+        for (let d = new Date(today); d <= maxDate; d.setDate(d.getDate() + 1)) {
             allDates.add(d.toISOString().split('T')[0]);
         }
 
