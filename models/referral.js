@@ -1,7 +1,7 @@
 module.exports = (sequelize, DataTypes) => {
     const Referral = sequelize.define('Referral', {
         userId: {
-            type: DataTypes.UUID,
+            type: DataTypes.STRING,
             allowNull: false
         },
         referralCode: {
