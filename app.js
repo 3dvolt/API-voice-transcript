@@ -20,7 +20,10 @@ const summaryRoute = require('./routes/summary');
 const timerRoute = require('./routes/timer');
 const statsRoute = require('./routes/stats');
 const goalRoute = require('./routes/goal');
+const referralRoute = require('./routes/referral');
 
+
+app.use('/v1/api', referralRoute);
 app.use('/v1/api', uploadRoute);
 app.use('/api/auth', authRoute);
 app.use('/v1/api', timerRoute);
@@ -31,7 +34,7 @@ app.use('/v1/api', goalRoute );
 // Sync database models and start server
 const PORT = process.env.PORT || 3000;
 
-sequelize.sync({ alter: false }).then(() => {
+sequelize.sync({ alter: true }).then(() => {
     console.log('Database synchronized');
     app.listen(PORT, () => {
         console.log(`Server running on port ${PORT}`);
