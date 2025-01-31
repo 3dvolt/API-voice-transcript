@@ -7,6 +7,7 @@ const { calculateDuration } = require('../utils/audio');
 const {getTranscription} = require("../ai/assemblySpeechModel");
 const {Readable} = require("node:stream");
 const {Op} = require("sequelize");
+const {queueTranscription} = require("../utils/transcriptionQueue");
 
 const apiUrl = process.env.API_BASE_URL || 'http://192.168.2.194:3001/v1/api';
 
