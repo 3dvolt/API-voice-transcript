@@ -1,4 +1,4 @@
-const { getTranscription } = require('../services/assemblyService'); // Transcription API service
+const { getTranscription } = require('../ai/assemblySpeechModel'); // Transcription API service
 const db = require('../models'); // Import database models
 
 async function queueTranscription(transcriptionId, audioBuffer) {
