@@ -109,6 +109,7 @@ router.get('/transcription/details/:id',authenticateToken, async (req, res) => {
 
         res.json({
             transcriptionId: transcription.id,
+            favourite: transcription.favourite,
             name: transcription.nota,
             tags: transcription.tag,
             duration: transcription.duration,
@@ -128,7 +129,7 @@ router.put('/transcription/update/:id', authenticateToken, async (req, res) => {
     try {
         const { id } = req.params;
         const userId = req.user.id;
-        const { nota, tag } = req.body;
+        const { nota, tag , favourite} = req.body;
 
         // Find the transcription by ID
         const transcription = await db.Transcription.findOne({ where: { id } });
@@ -144,6 +145,7 @@ router.put('/transcription/update/:id', authenticateToken, async (req, res) => {
         // Update fields if provided
         transcription.nota = nota !== undefined ? nota : transcription.nota;
         transcription.tag = tag !== undefined ? tag : transcription.tag;
+        transcription.favourite = favourite !== undefined ? favourite : transcription.favourite;
 
         // Save the updated transcription
         await transcription.save();
