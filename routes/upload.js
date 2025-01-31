@@ -24,7 +24,7 @@ const upload = multer({ storage, fileFilter });
 router.post('/upload', authenticateToken, upload.single('audio'), async (req, res) => {
     if (!req.file) return res.status(400).send('No file uploaded.');
 
-    const {buffer, mimetype, originalname} = req.file;
+    const { buffer, mimetype, originalname } = req.file;
     const userId = req.user.id;
 
     await db.APILog.create({
@@ -32,40 +32,26 @@ router.post('/upload', authenticateToken, upload.single('audio'), async (req, re
         endpoint: req.originalUrl
     });
 
-    // Calculate duration (example only - you might use an audio processing library for accurate duration)
-    const duration = 0 //await calculateDuration(buffer);  // Assume a function for this
-
-    // Save the uploaded audio data to the Transcription table
+    // Save the uploaded audio data to the Transcription table with 'pending' status
     const transcription = await db.Transcription.create({
         userId,
         name: originalname,
-        nota:req.body.title,
-        duration,
-        status: 'uploaded',
+        nota: req.body.title,
+        duration: null, // Will be updated later
+        status: 'pending',  // Initially set as 'pending'
         loadtype: mimetype,
         wav: buffer
     });
 
-    let audioTranscription = await getTranscription(buffer)
-
-    let newTranscription = await db.Ai.create({
-        transcriptionId:transcription.id,
-        AIresponse: JSON.stringify(audioTranscription)
-    })
-
-    const { audio_duration, status: aiStatus } = audioTranscription;
-
-// Update the Transcription record with the new duration and status
-    await transcription.update({
-        duration: audio_duration,
-        status: aiStatus
-    });
+    // Queue the transcription job to run in the background
+    queueTranscription(transcription.id, buffer);
 
     res.json({
-        message: 'File received and saved',
+        message: 'File received and transcription in progress',
         transcriptionId: transcription.id,
         filename: originalname,
-        userId
+        userId,
+        status: 'pending' // Indicate transcription is still in progress
     });
 });
 

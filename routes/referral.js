@@ -81,6 +81,10 @@ router.get('/check-referral/:code', async (req, res) => {
 
         const referral = await Referral.findOne({ where: { referralCode: code } });
 
+        const referralCode = await generateReferralCode(); // Assuming this function is defined
+
+        await fetchReferralDetails(referralCode);
+
         if (!referral) {
             return res.status(404).json({ error: 'Referral code not found' });
         }
