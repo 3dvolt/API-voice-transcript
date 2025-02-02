@@ -38,8 +38,8 @@ router.post('/upload', authenticateToken, upload.single('audio'), async (req, re
         userId,
         name: originalname,
         nota: req.body.title,
-        duration: null, // Will be updated later
-        status: 'pending',  // Initially set as 'pending'
+        duration: null,
+        status: 'transcribing',
         loadtype: mimetype,
         wav: buffer
     });

@@ -5,6 +5,15 @@ const authenticateToken = require('../middleware/auth');
 
 const router = express.Router();
 
+async function generateReferralCode() {
+    return uuidv4().slice(0, 8).toUpperCase();
+}
+
+// Fetch referral details by code
+async function fetchReferralDetails(referralCode) {
+    return await Referral.findOne({ where: { referralCode } });
+}
+
 // Generate referral code for a user
 router.post('/generate-referral-code', authenticateToken, async (req, res) => {
     try {
