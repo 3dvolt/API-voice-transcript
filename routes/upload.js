@@ -234,4 +234,37 @@ router.get('/transcription/stream/:id', async (req, res) => {
     }
 });
 
+router.delete('/transcription/delete/:id', authenticateToken, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const userId = req.user.id;
+
+        // Find the transcription by ID
+        const transcription = await db.Transcription.findOne({ where: { id } });
+        if (!transcription) {
+            return res.status(404).json({ message: 'Transcription not found' });
+        }
+
+        // Ensure only the owner can delete the transcription
+        if (transcription.userId !== userId) {
+            return res.status(403).json({ message: 'Not authorized to delete this transcription.' });
+        }
+
+        // Delete the transcription
+        await transcription.destroy();
+
+        // Log the API action
+        await db.APILog.create({
+            userId,
+            endpoint: req.originalUrl,
+            timestamp: new Date(),
+        });
+
+        return res.json({ message: 'Transcription deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting transcription:', error);
+        return res.status(500).json({ message: 'Internal server error' });
+    }
+});
+
 module.exports = router;
