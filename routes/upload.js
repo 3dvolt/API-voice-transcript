@@ -38,8 +38,8 @@ router.post('/upload', authenticateToken, upload.single('audio'), async (req, re
         userId,
         name: originalname,
         nota: req.body.title,
-        duration: null,
-        status: 'transcribing',
+        duration: null, // Will be updated later
+        status: 'pending',  // Initially set as 'pending'
         loadtype: mimetype,
         wav: buffer
     });
@@ -146,6 +146,8 @@ router.put('/transcription/update/:id', authenticateToken, async (req, res) => {
         transcription.nota = nota !== undefined ? nota : transcription.nota;
         transcription.tag = tag !== undefined ? tag : transcription.tag;
         transcription.favourite = favourite !== undefined ? favourite : transcription.favourite;
+
+        console.log(transcription.favourite, favourite)
 
         // Save the updated transcription
         await transcription.save();

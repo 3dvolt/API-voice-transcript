@@ -11,7 +11,7 @@ let preprompt_old = `make a summary of this voice transcription. make a deep foc
 
 let afterprompt = `structure the output in a JSON structure. output only JSON, no other text, the text in notes should be in HTML`
 
-let prepromptAskAI = `from this notes from a recording of a meeting `
+let prepromptAskAI = `you are Niuteq assistant, you are a chat assistant for a productive application that help people to focus better and to take notes, you will answare always in the language of the input message. from this notes from a recording of a meeting `
 
 let afterpromptAskAI = `answar to this question in a sharp and clean answare as possibile`
 
