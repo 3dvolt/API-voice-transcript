@@ -32,7 +32,7 @@ router.get('/tasks', authenticateToken, async (req, res) => {
     try {
         const tasks = await db.Task.findAll({
             where: { userId: req.user.id },
-            include: [{ model: db.Transcription, as: 'transcription' }],
+            include: [{ model: db.Transcription, as: 'taskTranscriptionId' ,attributes: ['nota', 'status']}],
         });
 
         res.status(200).json(tasks);

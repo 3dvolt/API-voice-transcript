@@ -14,8 +14,13 @@ module.exports = (sequelize, DataTypes) => {
         },
         transcriptionId: {
             type: DataTypes.INTEGER,
-            allowNull: false,
+            allowNull: true,
         },
+        completed:{
+            type: DataTypes.BOOLEAN,
+            allowNull:true,
+            defaultValue:false
+        }
     });
 
     return Task;
