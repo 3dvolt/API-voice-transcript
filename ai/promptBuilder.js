@@ -19,6 +19,7 @@ let preprompt = `Make a detailed summary of this voice transcription. Extract an
 1. **Contact Details**: Include phone numbers, names associated with them, and emails mentioned.
 2. **Event Details**: List scheduled events with their dates and times. If the time is not mentioned, default to "all-day event." If the year is not explicitly mentioned, assume it to be the current year.
 3. **Notes**: Provide a well-structured and concise summary of the conversation in HTML format for better readability. The notes should be formatted with proper headings, bullet points, and paragraphs where necessary.
+4. **Task**: Provide a well-structured and concise list of task. The task name should be short and concise.
 
 The output must be structured in JSON format with the following template:
 ${JSON.stringify(template)}

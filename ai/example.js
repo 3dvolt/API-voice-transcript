@@ -17,7 +17,10 @@ const template = {
     ],
         "notes": [
         ""
-    ]
+    ],
+        "task": [
+            ""
+        ]
 }
 }
 

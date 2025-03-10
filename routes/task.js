@@ -42,6 +42,23 @@ router.get('/tasks', authenticateToken, async (req, res) => {
     }
 });
 
+// Get all Tasks by Transcription
+router.get('/tasks/:transcriptionID', authenticateToken, async (req, res) => {
+    try {
+        const tasks = await db.Task.findAll({
+            where: {
+                userId: req.user.id,
+                transcriptionId: req.params.transcriptionId
+            }
+        });
+
+        res.status(200).json(tasks);
+    } catch (error) {
+        console.error('Error retrieving tasks:', error);
+        res.status(500).json({ message: 'Failed to retrieve tasks', error: error.message });
+    }
+});
+
 // Update a Task
 router.put('/tasks/:id', authenticateToken, async (req, res) => {
     try {
