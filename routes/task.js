@@ -95,4 +95,43 @@ router.delete('/tasks/:id', authenticateToken, async (req, res) => {
     }
 });
 
+// Mark a Task as Completed
+router.patch('/tasks/:id/complete', authenticateToken, async (req, res) => {
+    try {
+        const task = await db.Task.findOne({ where: { id: req.params.id, userId: req.user.id } });
+
+        if (!task) {
+            return res.status(404).json({ message: 'Task not found or unauthorized' });
+        }
+
+        await task.update({ completed: true });
+
+        res.status(200).json({ message: 'Task marked as completed', task });
+    } catch (error) {
+        console.error('Error marking task as completed:', error);
+        res.status(500).json({ message: 'Failed to mark task as completed', error: error.message });
+    }
+});
+
+// Get Task Summary by User (Count + Completed, Grouped by Date)
+router.get('/tasks/summary', authenticateToken, async (req, res) => {
+    try {
+        const tasks = await db.Task.findAll({
+            where: { userId: req.user.id },
+            attributes: [
+                [db.sequelize.fn('DATE', db.sequelize.col('createdAt')), 'date'],
+                [db.sequelize.fn('COUNT', db.sequelize.col('id')), 'totalTasks'],
+                [db.sequelize.fn('SUM', db.sequelize.literal('CASE WHEN completed = true THEN 1 ELSE 0 END')), 'completedTasks'],
+            ],
+            group: ['date'],
+            order: [['date', 'ASC']],
+        });
+
+        res.status(200).json(tasks);
+    } catch (error) {
+        console.error('Error retrieving task summary:', error);
+        res.status(500).json({ message: 'Failed to retrieve task summary', error: error.message });
+    }
+});
+
 module.exports = router;
