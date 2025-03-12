@@ -52,7 +52,7 @@ db.Ai.hasOne(db.Summary, { foreignKey: 'aiId', as: 'AiSummary' });
 db.Summary.belongsTo(db.Ai, { foreignKey: 'aiId', as: 'Ai' });
 
 
-db.Task.belongsTo(db.Transcription, {foreignKey: 'transcriptionId', as: 'taskTranscriptionId'});
+db.Task.belongsTo(db.Transcription, {foreignKey: 'transcriptionId', as: 'taskTranscriptionId',constraints: false});
 
 
 module.exports = db;
