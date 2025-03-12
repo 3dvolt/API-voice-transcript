@@ -5,10 +5,13 @@ const authenticateToken = require('../middleware/auth'); // Middleware for token
 const router = express.Router();
 
 router.post('/tasks', authenticateToken, async (req, res) => {
-    const { name, seconds, transcriptionId } = req.body;
+    let { name, seconds, transcriptionId } = req.body;
     const userId = req.user.id;
 
-    if (!userId || !name || !transcriptionId) {
+    if(!transcriptionId) {
+        transcriptionId = null
+    }
+    if (!userId || !name) {
         return res.status(400).json({ message: 'User ID, name, and transcriptionId are required' });
     }
 
@@ -114,7 +117,7 @@ router.patch('/tasks/:id/complete', authenticateToken, async (req, res) => {
 });
 
 // Get Task Summary by User (Count + Completed, Grouped by Date)
-router.get('/tasks/summary', authenticateToken, async (req, res) => {
+router.get('/tasks/summary/total', authenticateToken, async (req, res) => {
     try {
         const tasks = await db.Task.findAll({
             where: { userId: req.user.id },
