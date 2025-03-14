@@ -269,4 +269,94 @@ router.delete('/transcription/delete/:id', authenticateToken, async (req, res) =
     }
 });
 
+router.put('/transcription/update-utterance/:id', authenticateToken, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { utteranceIndex, text } = req.body;
+
+        // Fetch the existing record
+
+        const transcription = await db.Ai.findOne({where: { transcriptionId: id } });
+        if (!transcription) {
+            return res.status(404).json({ message: "Transcription not found" });
+        }
+
+        let data = transcription.AIresponse;
+        const jsonString = new TextDecoder().decode(data);
+        let transcriptionContent = JSON.parse(jsonString)
+
+        transcriptionContent.utterances[utteranceIndex].text = text
+
+        transcription.AIresponse = JSON.stringify(transcriptionContent)
+
+        await transcription.save();
+
+        await db.APILog.create({
+            userId : req.user.id,
+            endpoint: req.originalUrl,
+            timestamp: new Date(),
+        });
+
+        return res.json({
+            message: 'Transcription updated successfully',
+            transcription,
+        });
+    } catch (error) {
+        console.error('Error updating transcription details:', error);
+        return res.status(500).json({ message: 'Internal server error' });
+    }
+});
+
+router.put('/transcription/update-speaker/:id', authenticateToken, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { tempSpeaker, speaker } = req.body;
+
+        // Fetch the existing record
+
+        const transcription = await db.Ai.findOne({where: { transcriptionId: id } });
+        if (!transcription) {
+            return res.status(404).json({ message: "Transcription not found" });
+        }
+
+        let data = transcription.AIresponse;
+        const jsonString = new TextDecoder().decode(data);
+        let transcriptionContent = JSON.parse(jsonString)
+
+        if (speaker) {
+            transcriptionContent.words = transcriptionContent.words.map((word) => {
+                if (word.speaker === speaker) {
+                    word.speaker = speaker;
+                }
+                return word;
+            });
+
+            transcriptionContent.utterances = transcriptionContent.utterances.map((utterance) => {
+                if (utterance.speaker === speaker) {
+                    utterance.speaker = tempSpeaker;
+                }
+                return utterance;
+            });
+        }
+
+        transcription.AIresponse = JSON.stringify(transcriptionContent)
+
+        await transcription.save();
+
+        await db.APILog.create({
+            userId : req.user.id,
+            endpoint: req.originalUrl,
+            timestamp: new Date(),
+        });
+
+        return res.json({
+            message: 'Transcription updated successfully',
+            transcription,
+        });
+    } catch (error) {
+        console.error('Error updating transcription details:', error);
+        return res.status(500).json({ message: 'Internal server error' });
+    }
+});
+
 module.exports = router;
