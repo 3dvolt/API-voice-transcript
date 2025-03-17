@@ -8,6 +8,7 @@ const {getTranscription} = require("../ai/assemblySpeechModel");
 const {Readable} = require("node:stream");
 const {Op} = require("sequelize");
 const {queueTranscription} = require("../utils/transcriptionQueue");
+const { uploadAudioToS3, getSignedUrlForAudio } = require('../utils/aws');
 
 const apiUrl = process.env.API_BASE_URL || 'http://192.168.2.194:3001/v1/api';
 
@@ -41,8 +42,17 @@ router.post('/upload', authenticateToken, upload.single('audio'), async (req, re
         duration: null, // Will be updated later
         status: 'pending',  // Initially set as 'pending'
         loadtype: mimetype,
-        wav: buffer
+        wav:''
     });
+
+    const s3Key = `audio/${userId}-${transcription.id}-${Date.now()}.mp3`;
+
+    // Upload the audio file buffer to S3.
+    const uploadResult = await uploadAudioToS3(buffer, s3Key);
+
+    console.log('Audio file uploaded to S3:', uploadResult.Location);
+
+    transcription.update({wav:uploadResult.Key})
 
     // Queue the transcription job to run in the background
     queueTranscription(transcription.id, buffer);
@@ -92,6 +102,10 @@ router.get('/transcription/details/:id',authenticateToken, async (req, res) => {
             return res.status(404).json({ message: 'Transcription not found' });
         }
 
+        if (transcription.status == 'pending') {
+            res.status(404).json({ message: 'Pending Job...' });
+        }
+
         // Parse the AI response from JSON string to object
         const aiDetails = transcription.AiDetails
             ? {
@@ -100,12 +114,24 @@ router.get('/transcription/details/:id',authenticateToken, async (req, res) => {
             }
             : null;
 
-        if(transcription.AiDetails.AiSummary?.AIresponse){
+        if(transcription?.AiDetails?.AiSummary?.AIresponse){
             aiDetails.AIsummary = JSON.parse(transcription.AiDetails.AiSummary.AIresponse)
         }
 
         //pulisco
         delete aiDetails.AiSummary
+
+        let audioStream = ''
+        const wavContent = transcription.wav.toString('utf8').trim();
+
+        if (wavContent.startsWith('audio/')) {
+            audioStream = getSignedUrlForAudio(transcription.wav.toString());
+        }
+        //old storage way
+        else{
+            audioStream = `${apiUrl}/transcription/stream/${transcription.id}`
+        }
+
 
         res.json({
             transcriptionId: transcription.id,
@@ -116,7 +142,7 @@ router.get('/transcription/details/:id',authenticateToken, async (req, res) => {
             status: transcription.status,
             loadtype: transcription.loadtype,
             timestamp: transcription.timestamp,
-            file: `${apiUrl}/transcription/stream/${transcription.id}`,
+            file:audioStream,
             aiDetails
         });
     } catch (error) {
