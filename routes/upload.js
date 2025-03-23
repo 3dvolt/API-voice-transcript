@@ -258,17 +258,19 @@ router.get('/transcription/list',authenticateToken, async (req, res) => {
             order: [['createdAt', 'DESC']],
             attributes: { exclude: ['wav'] }
         });
-
-        const folders = await db.Folder.findAll({
+        let folders = []
+        if(page == '1'){
+          folders = await db.Folder.findAll({
             where: { userId: userId },
             order: [['createdAt', 'DESC']]
         });
+        }
 
         // Construct pagination metadata
         const totalPages = Math.ceil(result.count / limit);
 
         res.json({
-            transcriptions: result.rows,
+            transcriptions: [...folders,...result.rows],
             currentPage: parseInt(page),
             totalPages,
             totalItems: result.count,

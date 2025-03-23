@@ -1,5 +1,5 @@
 const express = require('express');
-const { sequelize,Timer, Transcription, License } = require('../models'); // Adjust path as needed
+const { sequelize,Timer, Transcription, Task } = require('../models'); // Adjust path as needed
 const router = express.Router();
 const { Op } = require('sequelize');
 const authenticateToken = require("../middleware/auth");
@@ -195,7 +195,27 @@ router.get('/daily-usage', authenticateToken, paginationMiddleware, async (req, 
     }
 });
 
+router.get('/user-stats/latest', authenticateToken, async (req, res) => {
+    try {
+        // Fetch latest 3 tasks
+        const latestTasks = await Task.findAll({
+            where: { userId: req.user.id },
+            order: [['createdAt', 'DESC']],
+            limit: 3
+        });
 
+        // Fetch latest 3 transcriptions
+        const latestTranscriptions = await Transcription.findAll({
+            where: { userId: req.user.id },
+            order: [['createdAt', 'DESC']],
+            limit: 3
+        });
 
+        res.status(200).json({ latestTasks, latestTranscriptions });
+    } catch (error) {
+        console.error('Error retrieving latest tasks and transcriptions:', error);
+        res.status(500).json({ message: 'Failed to retrieve latest tasks and transcriptions', error: error.message });
+    }
+});
 
 module.exports = router;
