@@ -22,6 +22,7 @@ const statsRoute = require('./routes/stats');
 const goalRoute = require('./routes/goal');
 const referralRoute = require('./routes/referral');
 const taskRoute = require('./routes/task');
+const folderRoute = require('./routes/folder');
 
 
 app.use('/v1/api', referralRoute);
@@ -32,6 +33,7 @@ app.use('/v1/api', summaryRoute);
 app.use('/v1/api', statsRoute );
 app.use('/v1/api', goalRoute );
 app.use('/v1/api', taskRoute );
+app.use('/v1/api', folderRoute );
 
 // Sync database models and start server
 const PORT = process.env.PORT || 3000;
