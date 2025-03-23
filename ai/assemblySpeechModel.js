@@ -1,25 +1,25 @@
 const axios = require('axios');
 const {AssemblyAI} = require('assemblyai');
 
-async function getTranscription(audioBuffer) {
+async function getTranscription(audioUrl) {
     try {
         const client = new AssemblyAI({
             apiKey: process.env.ASSEMBLY_AI_KEY
         });
 
         // Step 1: Upload the audio file to AssemblyAI
-        const uploadResponse = await axios.post(
-            'https://api.assemblyai.com/v2/upload',
-            audioBuffer,
-            {
-                headers: {
-                    authorization: process.env.ASSEMBLY_AI_KEY,
-                    'content-type': 'application/octet-stream'
-                }
-            }
-        );
+        //const uploadResponse = await axios.post(
+        //    'https://api.assemblyai.com/v2/upload',
+        //    audioBuffer,
+        //    {
+        //        headers: {
+        //            authorization: process.env.ASSEMBLY_AI_KEY,
+        //           'content-type': 'application/octet-stream'
+        //        }
+        //    }
+        //);
 
-        const audioUrl = uploadResponse.data.upload_url;
+        //const audioUrl = uploadResponse.data.upload_url;
 
         // Step 2: Request transcription
         const params = {

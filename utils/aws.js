@@ -1,9 +1,18 @@
 const AWS = require('aws-sdk');
+const { S3Client } = require('@aws-sdk/client-s3')
 
 const s3 = new AWS.S3({
     accessKeyId: process.env.AWS_ACCESS_KEY_ID,         // Your AWS Access Key ID
     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY, // Your AWS Secret Access Key
     region: process.env.AWS_REGION,                     // Your AWS region (e.g., 'us-west-2')
+});
+
+const s3Uploader = new S3Client({
+    region: process.env.AWS_REGION,
+    credentials: {
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+    },
 });
 
 async function uploadAudioToS3(audioBuffer, key, contentType = 'audio/mpeg') {
@@ -32,4 +41,4 @@ function getSignedUrlForAudio(key, expiresIn = 3600) {
     return s3.getSignedUrl('getObject', params);
 }
 
-module.exports = { uploadAudioToS3, getSignedUrlForAudio };
+module.exports = { uploadAudioToS3, getSignedUrlForAudio,s3Uploader };

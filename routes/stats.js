@@ -3,7 +3,7 @@ const { sequelize,Timer, Transcription, License } = require('../models'); // Adj
 const router = express.Router();
 const { Op } = require('sequelize');
 const authenticateToken = require("../middleware/auth");
-
+const {fetchUserTranscriptionUsage} = require('../utils/license')
 // Endpoint to generate stats per user
 router.get('/user-stats',authenticateToken, async (req, res) => {
     try {
@@ -82,58 +82,20 @@ router.get('/user-stats',authenticateToken, async (req, res) => {
 router.get('/user-transcription-usage', authenticateToken, async (req, res) => {
     try {
         const userId = req.user.id;
-
         if (!userId) {
             return res.status(400).json({ error: 'UserId is required.' });
         }
 
-        // Check if the user exists in the License table
-        let license = await License.findOne({ where: { userId: userId } });
+        const usageData = await fetchUserTranscriptionUsage(userId);
 
-        if (!license) {
-            // Create a new row if the user does not exist in the License table
-            license = await License.create({ userId: userId});
+        if (usageData.error) {
+            return res.status(500).json({ error: usageData.error });
         }
 
-        // Get the current date and calculate the start and end of the month
-        const now = new Date();
-        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-        const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
-
-        // Convert to UTC to ensure consistent querying
-        const timezoneOffset = startOfMonth.getTimezoneOffset() * 60000;
-        const startUTC = new Date(startOfMonth.getTime() - timezoneOffset);
-        const endUTC = new Date(endOfMonth.getTime() - timezoneOffset);
-
-        // Fetch transcription data for the current month
-        const transcriptionUsage = await Transcription.findAll({
-            where: {
-                userId: userId,
-                createdAt: {
-                    [Op.between]: [startUTC, endUTC],
-                },
-            },
-            attributes: [
-                [sequelize.fn('SUM', sequelize.col('duration')), 'totalDuration'],
-                [sequelize.fn('COUNT', sequelize.col('id')), 'transcriptionCount'],
-            ],
-        });
-
-        // Extract the results
-        const result = transcriptionUsage[0].dataValues;
-
-        // Fetch the License table data for the user
-        const userLicense = await License.findAll({ where: { userId: userId } });
-
-        return res.status(200).json({
-            userId: userId,
-            totalDuration: result.totalDuration || 0,
-            transcriptionCount: result.transcriptionCount || 0,
-            license: userLicense[0],
-        });
+        return res.status(200).json(usageData);
     } catch (error) {
-        console.error(error);
-        return res.status(500).json({ error: 'An error occurred while fetching transcription usage.' });
+        console.error('Controller error:', error);
+        return res.status(500).json({ error: 'An error occurred while processing your request.' });
     }
 });
 

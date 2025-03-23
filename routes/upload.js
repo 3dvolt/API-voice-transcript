@@ -2,17 +2,19 @@ const express = require('express');
 const multer = require('multer');
 const authenticateToken = require('../middleware/auth');
 const router = express.Router();
+const multerS3 = require('multer-s3');
 const db = require('../models');
-const { calculateDuration } = require('../utils/audio');
-const {getTranscription} = require("../ai/assemblySpeechModel");
 const {Readable} = require("node:stream");
 const {Op} = require("sequelize");
 const {queueTranscription} = require("../utils/transcriptionQueue");
-const { uploadAudioToS3, getSignedUrlForAudio } = require('../utils/aws');
+const { uploadAudioToS3, getSignedUrlForAudio, s3Uploader} = require('../utils/aws');
+const {fetchUserTranscriptionUsage} = require("../utils/license");
+const {getTranscription} = require("../ai/assemblySpeechModel");
 
 const apiUrl = process.env.API_BASE_URL || 'http://192.168.2.194:3001/v1/api';
 
 const storage = multer.memoryStorage();
+
 const fileFilter = (req, file, cb) => {
     if (file.mimetype === 'audio/mp4' || file.mimetype === 'audio/mpeg' || file.mimetype === 'audio/wav' || file.mimetype === 'audio/webm' || file.mimetype === 'audio/m4a' || file.mimetype === 'audio/mpeg' || file.mimetype === 'audio/x-m4a') {
         cb(null, true);
@@ -21,49 +23,84 @@ const fileFilter = (req, file, cb) => {
     }
 };
 
-const upload = multer({ storage, fileFilter });
+const upload = multer({
+    storage: multerS3({
+        s3:s3Uploader,
+        bucket: process.env.AWS_BUCKET_NAME,
+        metadata: (req, file, cb) => {
+            cb(null, { fieldName: file.fieldname });
+        },
+        key: (req, file, cb) => {
+            const userId = req.user.id;
+            const timestamp = Date.now();
+            const s3Key = `audio/${userId}-${timestamp}-${file.originalname}`;
+            cb(null, s3Key);
+        },
+        contentType: multerS3.AUTO_CONTENT_TYPE,
+    }),
+    limits: { fileSize: 150 * 1024 * 1024 }, // 150MB limit
+});
 
 router.post('/upload', authenticateToken, upload.single('audio'), async (req, res) => {
-    if (!req.file) return res.status(400).send('No file uploaded.');
+    try {
+        if (!req.file) return res.status(400).json({ error: 'No file uploaded.' });
 
-    const { buffer, mimetype, originalname } = req.file;
-    const userId = req.user.id;
+        const { location, key, mimetype,originalname } = req.file;
 
-    await db.APILog.create({
-        userId,
-        endpoint: req.originalUrl
-    });
+        //const { buffer, mimetype, originalname } = req.file;
+        const userId = req.user.id;
+        const duration = req.body.duration;
 
-    // Save the uploaded audio data to the Transcription table with 'pending' status
-    const transcription = await db.Transcription.create({
-        userId,
-        name: originalname,
-        nota: req.body.title,
-        duration: null, // Will be updated later
-        status: 'pending',  // Initially set as 'pending'
-        loadtype: mimetype,
-        wav:''
-    });
+        const usageData = await fetchUserTranscriptionUsage(userId);
 
-    const s3Key = `audio/${userId}-${transcription.id}-${Date.now()}.mp3`;
+        await db.APILog.create({
+            userId,
+            endpoint: req.originalUrl,
+        });
 
-    // Upload the audio file buffer to S3.
-    const uploadResult = await uploadAudioToS3(buffer, s3Key);
+        const transcription = await db.Transcription.create({
+            userId,
+            name: key,
+            nota: req.body.title,
+            duration: duration,
+            status: 'queued',
+            loadtype: mimetype,
+            wav: '',
+        });
 
-    console.log('Audio file uploaded to S3:', uploadResult.Location);
+        console.log(location)
 
-    transcription.update({wav:uploadResult.Key})
+        await transcription.update({ wav: key });
 
-    // Queue the transcription job to run in the background
-    queueTranscription(transcription.id, buffer);
+        if (usageData.remainTrainscription <= duration) {
 
-    res.json({
-        message: 'File received and transcription in progress',
-        transcriptionId: transcription.id,
-        filename: originalname,
-        userId,
-        status: 'pending' // Indicate transcription is still in progress
-    });
+            await transcription.update({ status: 'limit exceeded' });
+
+            console.log('Minutes exceeded');
+            return res.json({
+                message: 'Minute limit exceeded',
+                transcriptionId: transcription.id,
+                filename: location,
+                userId,
+                status: 'limit exceeded',
+            });
+        }
+
+        let audioPosition = getSignedUrlForAudio(key);
+
+        queueTranscription(transcription.id, audioPosition);
+
+        return res.json({
+            message: 'File received and transcription in progress',
+            transcriptionId: transcription.id,
+            filename: originalname,
+            userId,
+            status: 'queued',
+        });
+    } catch (error) {
+        console.error('Upload error:', error);
+        return res.status(500).json({ error: 'An error occurred during file upload.' });
+    }
 });
 
 router.get('/transcription/details/:id',authenticateToken, async (req, res) => {
@@ -99,12 +136,13 @@ router.get('/transcription/details/:id',authenticateToken, async (req, res) => {
         });
 
         if (!transcription) {
-            return res.status(404).json({ message: 'Transcription not found' });
+            res.status(404).json({ message: 'Transcription not found' });
         }
 
-        if (transcription.status == 'pending') {
-            res.status(404).json({ message: 'Pending Job...' });
+        if (transcription.status === 'queued') {
+            res.json({ message: 'Pending Job...' });
         }
+        try {
 
         // Parse the AI response from JSON string to object
         const aiDetails = transcription.AiDetails
@@ -124,6 +162,8 @@ router.get('/transcription/details/:id',authenticateToken, async (req, res) => {
         let audioStream = ''
         const wavContent = transcription.wav.toString('utf8').trim();
 
+        console.log(wavContent)
+
         if (wavContent.startsWith('audio/')) {
             audioStream = getSignedUrlForAudio(transcription.wav.toString());
         }
@@ -131,6 +171,8 @@ router.get('/transcription/details/:id',authenticateToken, async (req, res) => {
         else{
             audioStream = `${apiUrl}/transcription/stream/${transcription.id}`
         }
+
+        console.log(audioStream)
 
 
         res.json({
@@ -145,9 +187,14 @@ router.get('/transcription/details/:id',authenticateToken, async (req, res) => {
             file:audioStream,
             aiDetails
         });
+
+        }
+        catch (error) {
+            console.error('Error fetching transcription details:', error);
+            res.status(500).json({ message: 'Internal server error' });
+        }
     } catch (error) {
         console.error('Error fetching transcription details:', error);
-        res.status(500).json({ message: 'Internal server error' });
     }
 });
 
@@ -210,6 +257,11 @@ router.get('/transcription/list',authenticateToken, async (req, res) => {
             offset,
             order: [['createdAt', 'DESC']],
             attributes: { exclude: ['wav'] }
+        });
+
+        const folders = await db.Folder.findAll({
+            where: { userId: userId },
+            order: [['createdAt', 'DESC']]
         });
 
         // Construct pagination metadata
