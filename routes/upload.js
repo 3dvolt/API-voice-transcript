@@ -252,7 +252,7 @@ router.get('/transcription/list',authenticateToken, async (req, res) => {
 
         // Use findAndCountAll for pagination with total count
         const result = await db.Transcription.findAndCountAll({
-            where: { userId: userId },
+            where: { userId: userId,folderID:null },
             limit,
             offset,
             order: [['createdAt', 'DESC']],

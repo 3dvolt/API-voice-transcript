@@ -38,6 +38,10 @@ module.exports = (sequelize, DataTypes) => {
         wav: {
             type: DataTypes.BLOB('long'),
             allowNull: false,
+        },
+        folderID: {
+            type: DataTypes.INTEGER,
+            allowNull: true,
         }
     });
 

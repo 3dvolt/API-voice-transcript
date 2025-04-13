@@ -51,8 +51,11 @@ db.Ai.hasOne(db.Summary, { foreignKey: 'aiId', as: 'AiSummary' });
 // A Summary must belong to one Ai
 db.Summary.belongsTo(db.Ai, { foreignKey: 'aiId', as: 'Ai' });
 
-
 db.Task.belongsTo(db.Transcription, {foreignKey: 'transcriptionId', as: 'taskTranscriptionId',constraints: false});
+
+db.Folder.hasMany(db.Transcription, {foreignKey: 'folderID', as: 'transcriptions'});
+
+db.Transcription.belongsTo(db.Folder, {foreignKey: 'folderID', as: 'folder'});
 
 
 module.exports = db;

@@ -2,8 +2,7 @@ module.exports = (sequelize, DataTypes) => {
     const Folder = sequelize.define('Folder', {
         userId: {
             type: DataTypes.STRING,
-            allowNull: false,
-            unique: true
+            allowNull: false
         },
         name: {
             type: DataTypes.STRING,
