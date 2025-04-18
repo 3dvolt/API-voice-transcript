@@ -39,7 +39,7 @@ async function getSummaryOPENAI(initialTranscription,timestamp) {
 ${initialTranscription}, Provide the output as a JSON object with no extra text. The "notes" field must contain the HTML-formatted summary. the output should be in the same language of the transcription
 `
         const response = await openai.chat.completions.create({
-    model: "gpt-3.5-turbo",
+    model: "gpt-4.1",
     messages: [{"role": "user", "content": `${finalPrompt}`}],
     temperature: 1,
     max_tokens: 400,
