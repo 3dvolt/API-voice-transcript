@@ -87,12 +87,16 @@ router.post('/ask/summary/:id',authenticateToken, async (req, res) => {
             topK: 5,
             includeMetadata: true,
         });
-
+        let validID = false
         const contextChunks = (searchResults.matches || []).map(
-            (match) => `- Note Name: ${match.metadata.transcriptionTitle || 'Note'} Created at ${match.metadata.timestamp} : ${match.metadata.textContent}`
+            (match) => {if(match.id == id){validID = true}; return `- Note Name: ${match.metadata.transcriptionTitle || 'Note'} Created at ${match.metadata.timestamp} : ${match.metadata.textContent}`}
         );
 
-        const context = contextChunks.join("\n");
+        let context = contextChunks.join("\n");
+
+        if (validID){
+            context += aiDetails.AIresponse.text
+        }
 
         const response = await asktoAIOPENAI(context, question);
 
