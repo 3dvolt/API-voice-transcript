@@ -10,6 +10,7 @@ const {queueTranscription} = require("../utils/transcriptionQueue");
 const { uploadAudioToS3, getSignedUrlForAudio, s3Uploader} = require('../utils/aws');
 const {fetchUserTranscriptionUsage} = require("../utils/license");
 const {getTranscription} = require("../ai/assemblySpeechModel");
+const {index} = require("../ai/pinecone");
 
 const apiUrl = process.env.API_BASE_URL || 'http://192.168.2.194:3001/v1/api';
 
@@ -88,7 +89,7 @@ router.post('/upload', authenticateToken, upload.single('audio'), async (req, re
 
         let audioPosition = getSignedUrlForAudio(key);
 
-        queueTranscription(transcription.id, audioPosition);
+        queueTranscription(transcription.id,req.body.title, audioPosition,req.user.id);
 
         return res.json({
             message: 'File received and transcription in progress',
@@ -140,7 +141,7 @@ router.get('/transcription/details/:id',authenticateToken, async (req, res) => {
         }
 
         if (transcription.status === 'queued') {
-            res.json({ message: 'Pending Job...' });
+                res.json({ message: 'Pending Job...' });
         }
         try {
 
@@ -334,6 +335,13 @@ router.delete('/transcription/delete/:id', authenticateToken, async (req, res) =
 
         // Delete the transcription
         await transcription.destroy();
+
+        try{
+        await index.namespace(userId).deleteOne(id.toString());
+        }
+        catch (e) {
+            console.log('Missing VectorDB',e)
+        }
 
         // Log the API action
         await db.APILog.create({
