@@ -98,9 +98,11 @@ router.post('/upload', authenticateToken, upload.single('audio'), async (req, re
 
 router.post('/upload/pdf',authenticateToken, localUpload.single('pdf'), async (req, res) => {
     try {
-        const userId = req.user.id; // Assuming you're using JWT auth
+        const userId = req.user.id;
         const fileBuffer = req.file.buffer;
         const fileName = req.file.originalname;
+
+        let folder = req.body.folderID
 
         // 1. Extract text from PDF
         const data = await pdfParse(fileBuffer);
@@ -132,6 +134,12 @@ router.post('/upload/pdf',authenticateToken, localUpload.single('pdf'), async (r
         );
 
         await index.namespace(userId.toString()).upsert( vectors );
+
+        await db.Pdf.create({
+            userId : userId,
+            name:fileName,
+            folderId: folder
+        })
 
         res.status(200).json({ message: 'PDF uploaded and indexed', chunks: chunks.length });
     } catch (error) {

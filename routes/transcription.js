@@ -6,6 +6,7 @@ const {Op} = require("sequelize");
 const {getSignedUrlForAudio} = require("../utils/aws");
 const {Readable} = require("node:stream");
 const {index} = require("../ai/pinecone");
+const {getEmbedding} = require("../ai/generateEmbeddings");
 
 const apiUrl = process.env.API_BASE_URL || 'http://192.168.2.194:3001/v1/api';
 
@@ -150,24 +151,76 @@ router.put('/transcription/update/:id', authenticateToken, async (req, res) => {
 router.get('/transcription/list',authenticateToken, async (req, res) => {
     try {
         const userId = req.user.id;
-        const { page = 1, pageSize = 10 } = req.query; // Extract pagination info from query params
+        const { page = 1, pageSize = 10,search = '' } = req.query; // Extract pagination info from query params
+
 
         // Calculate offset and limit
         const limit = parseInt(pageSize); // Number of records per page
         const offset = (parseInt(page) - 1) * limit; // Skip records for previous pages
 
+        let transcriptionWhere = { userId, folderID: null };
+
+        if (search.trim()) {
+            transcriptionWhere = {
+                ...transcriptionWhere,
+                nota: { [Op.iLike]: `%${search.trim()}%` }
+            };
+        }
+
+        let vectorSearchIds = [];
+        if (search.trim()) {
+            const queryEmbedding = await getEmbedding(search);
+            const vectorSearch = await index
+                .namespace(userId.toString())
+                .query({
+                    vector: queryEmbedding,
+                    topK: 10,
+                    includeMetadata: true
+                });
+
+            vectorSearchIds = vectorSearch.matches.map(match => match.id);
+        }
+
+
         // Use findAndCountAll for pagination with total count
         const result = await db.Transcription.findAndCountAll({
-            where: { userId: userId,folderID:null },
+            where: transcriptionWhere,
             limit,
             offset,
             order: [['createdAt', 'DESC']],
             attributes: { exclude: ['wav'] }
         });
+
+        let semanticResults = [];
+        if (vectorSearchIds.length) {
+            const validIntIds = vectorSearchIds
+                .map(id => parseInt(id))
+                .filter(num => !isNaN(num) && Number.isInteger(num));
+
+            if (validIntIds.length > 0) {
+                semanticResults = await db.Transcription.findAll({
+                    where: {
+                        id: { [Op.in]: validIntIds },
+                        userId,
+                        folderID: null
+                    },
+                    attributes: { exclude: ['wav'] }
+                });
+            }
+        }
+
+        const combinedTranscriptions = [
+            ...semanticResults,
+            ...result.rows.filter(
+                t => !semanticResults.find(s => s.id === t.id)
+            )
+        ];
+
         let folders = []
-        if(page == '1'){
+
+        if (parseInt(page) === 1 && !search.trim()) {
             folders = await db.Folder.findAll({
-                where: { userId: userId },
+                where: { userId },
                 order: [['createdAt', 'DESC']]
             });
         }
@@ -176,7 +229,7 @@ router.get('/transcription/list',authenticateToken, async (req, res) => {
         const totalPages = Math.ceil(result.count / limit);
 
         res.json({
-            transcriptions: [...folders,...result.rows],
+            transcriptions: [...folders, ...combinedTranscriptions],
             currentPage: parseInt(page),
             totalPages,
             totalItems: result.count,

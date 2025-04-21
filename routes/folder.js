@@ -54,6 +54,10 @@ router.get('/folders/:id', authenticateToken, async (req, res) => {
                     model: db.Transcription,
                     as: 'transcriptions',
                     attributes: { exclude: ['wav'] } // exclude large binary data if not needed
+                },
+                {
+                    model: db.Pdf,
+                    as: 'pdfs'
                 }
             ]
         });

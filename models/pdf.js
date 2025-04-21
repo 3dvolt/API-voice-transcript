@@ -1,20 +1,20 @@
 module.exports = (sequelize, DataTypes) => {
-    const Folder = sequelize.define('Folder', {
+    const Pdf = sequelize.define('Pdf', {
         userId: {
             type: DataTypes.STRING,
             allowNull: false
         },
-        name: {
-            type: DataTypes.STRING,
+        folderId: {
+            type: DataTypes.INTEGER,
             allowNull: false,
         },
-        sharingTable: {
-            type: DataTypes.JSON,
+        name: {
+            type: DataTypes.STRING,
             allowNull: true,
         }
     },{
         timestamps: true
     });
 
-    return Folder;
+    return Pdf;
 };

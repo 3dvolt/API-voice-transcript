@@ -57,5 +57,8 @@ db.Folder.hasMany(db.Transcription, {foreignKey: 'folderID', as: 'transcriptions
 
 db.Transcription.belongsTo(db.Folder, {foreignKey: 'folderID', as: 'folder'});
 
+db.Pdf.belongsTo(db.Folder, {foreignKey: 'folderId', as: 'folder'});
+
+db.Folder.hasMany(db.Pdf, {foreignKey: 'folderId', as: 'pdfs'});
 
 module.exports = db;
