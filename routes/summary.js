@@ -94,8 +94,8 @@ router.post('/ask/summary/:id',authenticateToken, async (req, res) => {
 
         let context = contextChunks.join("\n");
 
-        if (validID){
-            context += aiDetails.AIresponse.text
+        if (!validID){
+            context =  ` \n Here is the the transcription of the current note : ` + aiDetails.AIresponse.text
         }
 
         const response = await asktoAIOPENAI(context, question);

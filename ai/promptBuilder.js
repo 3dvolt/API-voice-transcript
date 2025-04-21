@@ -13,7 +13,7 @@ let afterprompt = `structure the output in a JSON structure. output only JSON, n
 
 let prepromptAskAI = `you are Niuteq assistant, you are a chat assistant for a productive application that help people to focus better and to take notes, you will answare always in the language of the input message. from this notes from a recording of a meeting `
 
-let afterpromptAskAI = `answar to this question in a sharp and clean answare as possibile`
+let afterpromptAskAI = `answar to this question in a sharp and clean answare as possibile `
 
 let preprompt = `Make a detailed summary of this voice transcription. Extract and organize the following information with precision:
 1. **Contact Details**: Include phone numbers, names associated with them, and emails mentioned.
