@@ -64,7 +64,9 @@ router.get('/transcription/details/:id',authenticateToken, async (req, res) => {
             }
 
             //pulisco
-            delete aiDetails.AiSummary
+            if (aiDetails) {
+                delete aiDetails.AiSummary;
+            }
 
             let audioStream = ''
             const wavContent = transcription.wav.toString('utf8').trim();

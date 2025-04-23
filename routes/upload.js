@@ -65,7 +65,7 @@ router.post('/upload', authenticateToken, upload.single('audio'), async (req, re
 
         await transcription.update({ wav: key });
 
-        if (usageData.remainTrainscription <= duration) {
+        if (usageData.remainTrainscription <= parseInt(duration)*1000 ) {
 
             await transcription.update({ status: 'limit exceeded' });
 
@@ -95,6 +95,53 @@ router.post('/upload', authenticateToken, upload.single('audio'), async (req, re
         return res.status(500).json({ error: 'An error occurred during file upload.' });
     }
 });
+
+router.post('/upload/retry', authenticateToken, async (req, res) => {
+    try {
+        const { transcriptionId } = req.body;
+        const userId = req.user.id;
+
+        if (!transcriptionId) {
+            return res.status(400).json({ error: 'Missing transcription ID.' });
+        }
+
+        const transcription = await db.Transcription.findOne({ where: { id: transcriptionId, userId } });
+
+        if (!transcription) {
+            return res.status(404).json({ error: 'Transcription not found or access denied.' });
+        }
+
+        // Only allow retry for these statuses
+        const allowedStatuses = ['error', 'limit exceeded', 'failed'];
+        if (!allowedStatuses.includes(transcription.status)) {
+            return res.status(400).json({ error: `Transcription is in '${transcription.status}' state and cannot be retried.` });
+        }
+
+        // Check user's current usage to prevent rerunning over the limit
+        const usageData = await fetchUserTranscriptionUsage(userId);
+        if (usageData.remainTrainscription <= parseInt(transcription.duration) * 1000) {
+            return res.status(403).json({ error: 'Minute limit exceeded. Cannot retry transcription.' });
+        }
+
+        // Update status and requeue
+        await transcription.update({ status: 'queued' });
+
+        let audioPosition = getSignedUrlForAudio(transcription.name);
+
+        queueTranscription(transcription.id, transcription.nota,audioPosition, userId);
+
+        return res.json({
+            message: 'Transcription retry initiated.',
+            transcriptionId: transcription.id,
+            status: 'queued',
+        });
+
+    } catch (error) {
+        console.error('Retry error:', error);
+        return res.status(500).json({ error: 'An error occurred while retrying transcription.' });
+    }
+});
+
 
 router.post('/upload/pdf',authenticateToken, localUpload.single('pdf'), async (req, res) => {
     try {
